@@ -278,9 +278,9 @@ These rules apply to every coding session and commit. They are mandatory, not op
 - Before committing, review the changed files for TODOs, stubs, unimplemented branches, placeholder content, dead controls, and missing error handling related to the change.
 
 ### Provide a playable test link after every commit
-- After **every commit that changes the game**, provide the user with a direct link to the playable build so they can test the current state.
+- After **every commit to the repository**, provide the user with a direct link to the current playable build so they can test the latest state. This applies to code, configuration, and documentation commits; for a documentation-only commit, link the current build if one exists.
 - Prefer the deployed GitHub Pages URL once GitHub Pages is configured and deployment has succeeded. Verify the URL and deployment status before claiming the link is live.
-- If GitHub Pages is not configured or the latest commit has not deployed successfully, do not invent or falsely label a playable URL. Clearly state that a live build is not yet available and provide the most useful verified alternative, such as the repository or commit link, plus the steps/blocker needed to make the build playable.
+- If GitHub Pages is not configured, no playable build exists yet, or the latest game commit has not deployed successfully, do not invent or falsely label a playable URL. Clearly state that a live build is not yet available and provide the most useful verified alternative, such as the repository or commit link, plus the steps/blocker needed to make the build playable.
 - Do not imply that a commit itself proves the game works. When possible, verify the build and test the affected interactions before reporting it as ready.
 - In the post-commit response, include: a concise summary of what changed, the commit link, the playable link (or a clear note that it is not yet available and why), and any relevant test results or known limitations.
 - Keep the link easy to find; do not bury it in a long explanation.
