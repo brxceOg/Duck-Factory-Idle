@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#45251d">
+<title>Quack & Co. Industrial Complex</title>
+<style>
+:root{color-scheme:dark;--ink:#3b1c18;--wood:#6e3423;--gold:#ffca56;--cream:#fff0c4;--panel:#8c472b;--edge:#d7833b}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#263e2b;font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif;color:var(--cream);touch-action:manipulation}
+button{font:inherit;color:inherit;cursor:pointer;border:2px solid #4a2019;border-radius:12px;background:linear-gradient(#ffcf65,#df842d 58%,#b95527);box-shadow:inset 0 2px #ffe8a0,0 3px 0 #49231b,0 5px 9px #1b211b88;text-shadow:0 1px #71301d;font-weight:900;padding:10px 12px;min-height:42px}
+button:active{transform:translateY(2px);box-shadow:inset 0 2px #ffe8a0,0 1px 0 #49231b}
+button:disabled{filter:grayscale(.65);opacity:.55;cursor:not-allowed}
+#app{height:100%;display:flex;flex-direction:column;max-width:1500px;margin:auto;background:#314b30;position:relative;overflow:hidden}
+header{z-index:4;padding:calc(8px + env(safe-area-inset-top)) 10px 10px;display:flex;align-items:center;gap:10px;background:linear-gradient(#6d3022,#48221c);border-bottom:4px solid #291713;box-shadow:0 4px 0 #d47a31;flex-wrap:wrap}
+.brand{font-weight:1000;line-height:1;color:#ffdf78;font-size:clamp(16px,3.5vw,24px);text-shadow:2px 2px #321714;white-space:nowrap}.brand small{display:block;font-size:10px;letter-spacing:2px;color:#ffe9b2;margin-top:4px}
+.wallet{margin-left:auto;display:flex;align-items:center;gap:8px;background:#2f211c;border:2px solid #bb7137;border-radius:12px;padding:7px 10px;min-width:0}.waveIcon{color:#ffce56;font-size:23px}.wallet strong{font-size:clamp(16px,3.6vw,23px);color:#ffda70;white-space:nowrap}.wallet small{display:block;font-size:10px;color:#e8c59b}
+#soundMeter{width:70px;height:8px;border-radius:9px;background:#201b17;overflow:hidden;border:1px solid #c47b3e}#soundFill{height:100%;width:8%;background:linear-gradient(90deg,#ffcc4c,#ff7e32);transition:width .2s}
+main{flex:1;min-height:0;position:relative;overflow:hidden}#world{display:block;width:100%;height:100%;touch-action:none;cursor:grab}#world:active{cursor:grabbing}
+#tip{position:absolute;left:10px;top:10px;background:#3d281fdc;border:1px solid #cb8c49;border-radius:10px;padding:8px 10px;font-size:12px;max-width:min(300px,75vw);pointer-events:none;box-shadow:0 2px 6px #0005}
+#toast{position:absolute;left:50%;top:58px;transform:translate(-50%,-10px);opacity:0;transition:.2s;pointer-events:none;background:#51251d;border:2px solid #ffc458;border-radius:14px;padding:10px 14px;font-weight:900;text-align:center;max-width:90%;z-index:8}#toast.show{opacity:1;transform:translate(-50%,0)}
+#hudBottom{z-index:4;background:linear-gradient(#6d3425,#45211b);border-top:4px solid #d27b35;padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 0 #2a1814}
+.toolbar{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 5px;scrollbar-width:thin}.toolbar button{flex:1 0 auto;min-width:74px;font-size:12px;padding:8px 10px}
+#buildTray{display:none;gap:7px;overflow-x:auto;padding:6px 2px 3px}#buildTray.open{display:flex}#buildTray button{min-width:130px;text-align:left;font-size:12px}#buildTray button span{display:block;font-size:11px;color:#fff0c3;font-weight:700;margin-top:4px}
+#panel{display:none;position:absolute;z-index:7;inset:12px 10px 12px auto;width:min(360px,calc(100% - 20px));max-height:calc(100% - 24px);overflow:auto;background:linear-gradient(135deg,#8a492e,#59281f);border:4px solid #e1a04c;outline:2px solid #3b1b16;border-radius:16px;box-shadow:0 12px 40px #0009;padding:14px}
+#panel.open{display:block}#panel h2{margin:0 35px 10px 0;color:#ffdc79;font-size:21px}#panel p{font-size:13px;line-height:1.45;color:#ffe9c0}#panel .close{position:absolute;right:10px;top:10px;min-width:40px;padding:5px}
+.stat{background:#40221b;border:1px solid #c27a3e;border-radius:9px;padding:10px;margin:8px 0;font-size:13px}.stat b{color:#ffd574}.wide{width:100%;margin-top:7px}
+#placementBanner{display:none;position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:5;background:#3c211b;border:2px solid #ffc458;border-radius:12px;padding:8px 12px;text-align:center;font-size:12px;white-space:nowrap;max-width:95%}#placementBanner.show{display:block}
+@media(min-width:800px){#hudBottom{padding-left:16px;padding-right:16px}.toolbar button{font-size:14px}#panel{right:16px;width:360px}#tip{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand">🦆 QUACK & CO.<small>INDUSTRIAL COMPLEX</small></div>
+  <div class="wallet"><span class="waveIcon">)))</span><div><strong id="quack">120</strong><small>QUACK · <span id="rate">0</span>/sec</small></div><div id="soundMeter"><div id="soundFill"></div></div></div>
+</header>
+<main>
+  <canvas id="world" aria-label="Scrollable factory map. Drag to pan, tap a tile to build or inspect."></canvas>
+  <div id="tip">Drag to explore your land · Tap a tile to build or inspect. Your machines make Quack through sound waves.</div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="placementBanner">Choose a clear tile to place equipment · tap Build again to cancel</div>
+  <aside id="panel" aria-live="polite"><button class="close" id="closePanel" aria-label="Close panel">✕</button><div id="panelContent"></div></aside>
+</main>
+<div id="hudBottom">
+  <div id="buildTray">
+    <button data-build="press">🛠️ Duck Press <span>Cost 50 Quack · +1.5/sec</span></button>
+    <button data-build="conveyor">➡️ Conveyor <span>Cost 12 Quack · logistics</span></button>
+    <button data-build="resonator">🔊 Quack Resonator <span>Cost 80 Quack · +4/sec</span></button>
+    <button data-build="vat">🧪 Mutation Vat <span>Cost 160 Quack · +2/sec + discoveries</span></button>
+    <button data-build="storage">📦 Duck Storage <span>Cost 35 Quack · factory capacity</span></button>
+  </div>
+  <nav class="toolbar" aria-label="Factory controls">
+    <button id="buildBtn">🏗️ Build</button><button id="expandBtn">🌱 Expand land</button><button id="upgradeBtn">📈 Upgrade</button><button id="statsBtn">📊 Factory</button><button id="saveBtn">💾 Save</button><button id="resetBtn">↻ Reset</button>
+  </nav>
+</div>
+</div>
+<script>
+(()=> {
+'use strict';
+const canvas=document.getElementById('world'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const TILE=56, SAVE_KEY='quackCoSaveV1';
+const equipment={
+ press:{name:'Duck Press',cost:50,rate:1.5,color:'#d87932',icon:'🏭',desc:'Shapes glossy yellow ducks at a steady pace.'},
+ conveyor:{name:'Conveyor',cost:12,rate:.12,color:'#6e7473',icon:'➡️',desc:'A sturdy belt segment. Adds a little factory hum.'},
+ resonator:{name:'Quack Resonator',cost:80,rate:4,color:'#4d91a0',icon:'🔊',desc:'Turns machine vibration into a booming Quack signal.'},
+ vat:{name:'Mutation Vat',cost:160,rate:2,color:'#8e68a9',icon:'🧪',desc:'An unstable research vat. Every so often it discovers an odd duck.'},
+ storage:{name:'Duck Storage',cost:35,rate:.35,color:'#bd9a54',icon:'📦',desc:'Keeps the operation organized and humming.'}
+};
+let state={version:1,quack:120,earned:120,spent:0,placed:[],unlockedRadius:10,level:1,mutations:0,discovered:[],lastSave:Date.now(),camera:{x:0,y:0,zoom:1},sound:true};
+let camera={x:0,y:0,zoom:1},screen={w:1,h:1,dpr:1},buildType=null,selectedId=null,drag=null,lastFrame=performance.now(),toastTimer=null,mutationClock=0,quackPulse=0;
+function load(){
+ try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;const parsed=JSON.parse(raw);if(parsed&&parsed.version===1&&Number.isFinite(parsed.quack)&&Array.isArray(parsed.placed)){state={...state,...parsed};state.placed=state.placed.filter(o=>o&&equipment[o.type]&&Number.isInteger(o.x)&&Number.isInteger(o.y));state.discovered=Array.isArray(state.discovered)?state.discovered:[];}}
+ catch(e){showToast('Save could not be loaded; starting a fresh factory.');}
+}
+function save(show=true){try{state.camera={...camera};state.lastSave=Date.now();localStorage.setItem(SAVE_KEY,JSON.stringify(state));if(show)showToast('Factory saved on this device.');return true;}catch(e){showToast('Save failed. Check available browser storage.');return false;}}
+function resize(){const r=canvas.getBoundingClientRect();screen.w=r.width;screen.h=r.height;screen.dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(r.width*screen.dpr);canvas.height=Math.round(r.height*screen.dpr);ctx.setTransform(screen.dpr,0,0,screen.dpr,0,0);}
+function worldToScreen(x,y){return {x:(x*TILE-camera.x)*camera.zoom+screen.w/2,y:(y*TILE-camera.y)*camera.zoom+screen.h/2};}
+function screenToWorld(x,y){return {x:(x-screen.w/2)/camera.zoom+camera.x,y:(y-screen.h/2)/camera.zoom+camera.y};}
+function tileAt(sx,sy){const w=screenToWorld(sx,sy);return {x:Math.floor(w.x/TILE),y:Math.floor(w.y/TILE)};}
+function key(x,y){return x+','+y;}
+function occupied(x,y){return state.placed.find(o=>o.x===x&&o.y===y);}
+function inLand(x,y){return Math.abs(x)<=state.unlockedRadius&&Math.abs(y)<=state.unlockedRadius;}
+function rate(){return state.placed.reduce((n,o)=>n+equipment[o.type].rate,0)*(1+(state.level-1)*.12);}
+function fmt(n){if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(2)+'M';if(n>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(n<10?1:0);}
+function showToast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2300);}
+function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke();}}
+function drawGround(sx,sy,x,y){
+ const n=((x*17+y*31)%9+9)%9;const greens=['#77904a','#819b50','#879e55','#718b46','#8b9e56'];
+ ctx.fillStyle=greens[n%greens.length];ctx.fillRect(sx,sy,TILE*camera.zoom,TILE*camera.zoom);
+ ctx.strokeStyle='#5e773d';ctx.lineWidth=.7;ctx.strokeRect(sx,sy,TILE*camera.zoom,TILE*camera.zoom);
+ const z=camera.zoom;if(z>.55){ctx.globalAlpha=.22;ctx.fillStyle=n%2?'#d5d98a':'#354f2c';for(let i=0;i<3;i++){let px=sx+((n*13+i*19)%47+5)*z,py=sy+((n*7+i*23)%45+5)*z;ctx.beginPath();ctx.ellipse(px,py,2.1*z,1.2*z,-.5,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+}
+function drawTree(sx,sy,z,variant){ctx.save();ctx.translate(sx+TILE*z*.5,sy+TILE*z*.52);ctx.fillStyle='#4d3a27';ctx.fillRect(-3*z,0,6*z,15*z);ctx.fillStyle=variant?'#42663a':'#55783d';ctx.beginPath();ctx.arc(0,-5*z,15*z,0,Math.PI*2);ctx.fill();ctx.fillStyle=variant?'#648b49':'#73984e';ctx.beginPath();ctx.arc(-4*z,-10*z,9*z,0,Math.PI*2);ctx.fill();ctx.restore();}
+function drawDuck(sx,sy,z,variant){ctx.save();ctx.translate(sx+TILE*z*.5,sy+TILE*z*.52);ctx.scale(z,z);ctx.fillStyle='#45231b';ctx.beginPath();ctx.ellipse(0,4,18,15,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=variant?'#ffd66a':'#ffcb28';ctx.beginPath();ctx.ellipse(-1,3,16,13,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(-2,-8,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(-5,-10,3.7,4.5,0,0,Math.PI*2);ctx.ellipse(3,-10,3.7,4.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#44201b';ctx.beginPath();ctx.arc(-4,-9,1.6,0,Math.PI*2);ctx.arc(4,-9,1.6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f06a2c';ctx.beginPath();ctx.moveTo(6,-4);ctx.lineTo(16,-1);ctx.lineTo(6,2);ctx.closePath();ctx.fill();ctx.restore();}
+function drawMachine(o,sx,sy,z,now){
+ ctx.save();ctx.translate(sx,sy);const s=TILE*z;roundedRect(s+5*z,s+8*z,s-10*z,s-12*z,7*z,'#34271f66');
+ roundedRect(s+7*z,s+5*z,s-14*z,s-15*z,equipment[o.type].color,'#49251b');
+ roundedRect(s+10*z,s+8*z,s-20*z,9*z,'#f0bd62','#65331e');
+ ctx.fillStyle='#fff1c6';ctx.font='bold '+Math.max(10,18*z)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(equipment[o.type].icon,s/2,s*.57);
+ if(o.type==='press'){ctx.fillStyle='#e9a14a';ctx.fillRect(s*.3,s*.77,s*.4,3*z);}
+ if(o.type==='conveyor'){ctx.strokeStyle='#e4c08a';ctx.lineWidth=2*z;ctx.beginPath();ctx.moveTo(s*.25,s*.7);ctx.lineTo(s*.75,s*.7);ctx.stroke();ctx.beginPath();ctx.moveTo(s*.65,s*.61);ctx.lineTo(s*.76,s*.7);ctx.lineTo(s*.65,s*.79);ctx.stroke();}
+ if(o.type==='resonator'){const pulse=(now/330)%1;ctx.strokeStyle='rgba(255,225,120,'+(1-pulse)+')';ctx.lineWidth=2*z;ctx.beginPath();ctx.arc(s*.5,s*.53,(13+pulse*12)*z,0,Math.PI*2);ctx.stroke();}
+ if(o.type==='vat'){ctx.fillStyle='#8effb2';ctx.globalAlpha=.7+Math.sin(now/220)*.2;ctx.beginPath();ctx.arc(s*.5,s*.6,5*z,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+ if(selectedId===o.id){ctx.strokeStyle='#fff4a6';ctx.lineWidth=3;ctx.setLineDash([5,3]);ctx.strokeRect(s+2*z,s+2*z,s-4*z,s-4*z);ctx.setLineDash([]);}
+ ctx.restore();
+}
+function render(now){
+ ctx.clearRect(0,0,screen.w,screen.h);ctx.fillStyle='#324c32';ctx.fillRect(0,0,screen.w,screen.h);
+ const topLeft=screenToWorld(0,0),bottomRight=screenToWorld(screen.w,screen.h),minX=Math.floor(topLeft.x/TILE)-1,maxX=Math.ceil(bottomRight.x/TILE)+1,minY=Math.floor(topLeft.y/TILE)-1,maxY=Math.ceil(bottomRight.y/TILE)+1,z=camera.zoom;
+ for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const p=worldToScreen(x*TILE/TILE,y*TILE/TILE),sx=p.x,sy=p.y;drawGround(sx,sy,x,y);if(!inLand(x,y)){ctx.fillStyle='rgba(22,30,24,.57)';ctx.fillRect(sx,sy,TILE*z,TILE*z);if((x+y)%4===0&&z>.6){ctx.fillStyle='#b2b69a';ctx.font='10px system-ui';ctx.fillText('LOCKED',sx+5*z,sy+TILE*z/2);}}else if(Math.abs(x)>state.unlockedRadius-1||Math.abs(y)>state.unlockedRadius-1){ctx.strokeStyle='rgba(255,224,133,.35)';ctx.lineWidth=1;ctx.strokeRect(sx+1,sy+1,TILE*z-2,TILE*z-2);}
+  if(inLand(x,y)&&!occupied(x,y)&&z>.7){const seed=Math.abs((x*73+y*119)%101);if(seed<4&&Math.abs(x)>2&&Math.abs(y)>2)drawTree(sx,sy,z,seed%2);}}
+ for(const o of state.placed){const p=worldToScreen(o.x,o.y);drawMachine(o,p.x,p.y,z,now);if(o.type==='press'&&z>.8)drawDuck(p.x+TILE*z*.48,p.y+TILE*z*.15,z*.5,false);}
+ if(buildType){const p=tileAt(pointer.x,pointer.y);const s=worldToScreen(p.x,p.y);ctx.fillStyle=inLand(p.x,p.y)&&!occupied(p.x,p.y)?'#8cff9b66':'#ff484866';ctx.fillRect(s.x+2,s.y+2,TILE*z-4,TILE*z-4);ctx.strokeStyle=inLand(p.x,p.y)&&!occupied(p.x,p.y)?'#d5ffd6':'#ffd1c4';ctx.lineWidth=2;ctx.strokeRect(s.x+2,s.y+2,TILE*z-4,TILE*z-4);}
+ if(quackPulse>0){ctx.globalAlpha=Math.min(.2,quackPulse*.2);ctx.fillStyle='#ffce5a';ctx.fillRect(0,0,screen.w,screen.h);ctx.globalAlpha=1;}
+ requestAnimationFrame(render);
+}
+let pointer={x:0,y:0};
+function updateHud(){ $('quack').textContent=fmt(state.quack);$('rate').textContent=fmt(rate());$('soundFill').style.width=Math.min(100,rate()*4+3)+'%';}
+function setBuild(type){buildType=buildType===type?null:type;selectedId=null;$('buildTray').classList.toggle('open',!!buildType||$('buildTray').classList.contains('open'));$('placementBanner').classList.toggle('show',!!buildType);if(!buildType)$('placementBanner').classList.remove('show');document.querySelectorAll('[data-build]').forEach(b=>b.style.outline=b.dataset.build===buildType?'3px solid #fff2a1':'none');}
+function openPanel(title,html){$('panelContent').innerHTML='<h2>'+title+'</h2>'+html;$('panel').classList.add('open');}
+function closePanel(){$('panel').classList.remove('open');}
+function place(type,x,y){const item=equipment[type];if(!item)return;if(!inLand(x,y)){showToast('That land is still locked. Expand your plot first.');return;}if(occupied(x,y)){showToast('That tile is occupied. Choose a clear tile.');return;}if(state.quack<item.cost){showToast('Not enough Quack. Need '+item.cost+'.');return;}state.quack-=item.cost;state.spent+=item.cost;state.placed.push({id:'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type,x,y,level:1,placedAt:Date.now()});setBuild(null);$('buildTray').classList.remove('open');updateHud();showToast(item.name+' placed! Factory hum increased.');save(false);}
+function inspect(x,y){const obj=occupied(x,y);if(!obj){selectedId=null;return;}selectedId=obj.id;const item=equipment[obj.type];openPanel(item.icon+' '+item.name,'<p>'+item.desc+'</p><div class="stat">Sound output <b>+'+item.rate.toFixed(2)+' Quack/sec</b><br>Grid position <b>'+x+', '+y+'</b><br>Machine level <b>'+obj.level+'</b></div><button class="wide" id="upgradeMachine">⬆️ Upgrade machine · '+Math.round(item.cost*(obj.level+1)*.8)+' Quack</button><button class="wide" id="moveMachine">↔️ Move machine</button><button class="wide" id="sellMachine">♻️ Recycle for '+Math.floor(item.cost*.55)+' Quack</button>');$('upgradeMachine').onclick=()=>{const cost=Math.round(item.cost*(obj.level+1)*.8);if(state.quack<cost){showToast('Not enough Quack for this upgrade.');return;}state.quack-=cost;state.spent+=cost;obj.level++;item.rate;updateHud();openPanel(item.icon+' '+item.name,'<p>Machine upgraded to level '+obj.level+'. Output now scales with its level.</p><div class="stat">Base output <b>+'+(item.rate*obj.level).toFixed(2)+' Quack/sec</b></div><button class="wide" id="backMachine">Back to machine</button>');$('backMachine').onclick=()=>inspect(obj.x,obj.y);save(false);showToast('Machine upgraded!');};$('sellMachine').onclick=()=>{state.quack+=Math.floor(item.cost*.55);state.placed=state.placed.filter(o=>o.id!==obj.id);selectedId=null;closePanel();updateHud();save(false);showToast('Equipment recycled.');};$('moveMachine').onclick=()=>{buildType='move:'+obj.id;closePanel();$('placementBanner').textContent='Tap an empty unlocked tile to move this machine · tap Build to cancel';$('placementBanner').classList.add('show');};
+}
+function expandLand(){const cost=Math.round(180*Math.pow(state.unlockedRadius-10+1,1.65));if(state.quack<cost){showToast('Land expansion costs '+cost+' Quack.');return;}state.quack-=cost;state.spent+=cost;state.unlockedRadius++;updateHud();showToast('Land expanded! New buildable territory unlocked.');save(false);}
+function upgradeFactory(){const cost=150*state.level;if(state.quack<cost){showToast('Factory-wide upgrade costs '+cost+' Quack.');return;}state.quack-=cost;state.spent+=cost;state.level++;updateHud();showToast('Factory acoustics upgraded to level '+state.level+' · +12% total output per level.');save(false);}
+function stats(){const counts={};state.placed.forEach(o=>counts[o.type]=(counts[o.type]||0)+1);const rows=Object.entries(equipment).map(([k,v])=>'<div class="stat">'+v.icon+' <b>'+v.name+'</b>: '+(counts[k]||0)+' placed</div>').join('');openPanel('📊 Factory overview','<div class="stat">Quack balance <b>'+fmt(state.quack)+'</b><br>Sound output <b>'+fmt(rate())+' Quack/sec</b><br>Total machines <b>'+state.placed.length+'</b><br>Factory level <b>'+state.level+'</b><br>Land radius <b>'+state.unlockedRadius+' tiles</b><br>Mutations discovered <b>'+state.discovered.length+'</b><br>Total invested <b>'+fmt(state.spent)+' Quack</b></div>'+rows+'<p>Quack is generated by the sound waves of every placed machine. More equipment and factory upgrades make a louder, more productive complex.</p>');}
+function upgrades(){const cost=150*state.level;openPanel('📈 Acoustics upgrade','<p>Tune the whole complex to turn mechanical noise into more usable Quack.</p><div class="stat">Current factory level <b>'+state.level+'</b><br>Global output bonus <b>+'+((state.level-1)*12)+'%</b><br>Next upgrade <b>'+cost+' Quack</b><br>Effect <b>+12% total Quack generation</b></div><button class="wide" id="buyUpgrade">Buy factory acoustics upgrade · '+cost+' Quack</button>');$('buyUpgrade').onclick=()=>{upgradeFactory();upgrades();};}
+function maybeMutation(dt){mutationClock+=dt;const vats=state.placed.filter(o=>o.type==='vat').length;if(!vats)return;const interval=Math.max(12,45/(1+vats*.2));if(mutationClock>=interval){mutationClock=0;const names=['Toaster-Wing Ducky','Existential Dread Ducky','Cyberpunk Ducky','Chef Ducky','Tax-Auditor Ducky','Soup-Adjacent Ducky'];const available=names.filter(n=>!state.discovered.includes(n));const name=available.length?available[Math.floor(Math.random()*available.length)]:names[Math.floor(Math.random()*names.length)];const fresh=!state.discovered.includes(name);if(fresh){state.discovered.push(name);state.mutations++;state.quack+=100;state.earned+=100;quackPulse=1;showToast('MUTATION DISCOVERED: '+name+' · +100 bonus Quack!');}else{state.quack+=25;state.earned+=25;showToast('Mutation Vat produced a repeat hybrid · +25 Quack.');}updateHud();save(false);}}
+function openCollection(){const list=state.discovered.length?state.discovered.map((n,i)=>'<div class="stat">🧬 <b>'+n+'</b><br>Discovery #'+(i+1)+'</div>').join(''):'<p>No mutations discovered yet. Place a Mutation Vat and let the lab work its questionable magic.</p>';openPanel('🧬 Mutation discoveries',list+'<p>Each vat occasionally discovers a strange duck and awards a Quack bonus. More vats shorten the expected wait.</p>');}
+let lastTick=performance.now();function tick(now){const dt=Math.min((now-lastTick)/1000,1);lastTick=now;if(dt>0){const gain=rate()*dt;state.quack+=gain;state.earned+=gain;quackPulse=Math.max(0,quackPulse-dt);maybeMutation(dt);updateHud();}requestAnimationFrame(tick);}
+function canvasPoint(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+canvas.addEventListener('pointerdown',e=>{const p=canvasPoint(e);pointer=p;drag={id:e.pointerId,startX:p.x,startY:p.y,lastX:p.x,lastY:p.y,moved:false,camX:camera.x,camY:camera.y};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{const p=canvasPoint(e);pointer=p;if(!drag)return;const dx=p.x-drag.startX,dy=p.y-drag.startY;if(Math.abs(dx)+Math.abs(dy)>6)drag.moved=true;if(drag.moved){camera.x=drag.camX-dx/camera.zoom;camera.y=drag.camY-dy/camera.zoom;}});
+canvas.addEventListener('pointerup',e=>{if(!drag)return;const p=canvasPoint(e),wasDrag=drag.moved;drag=null;if(wasDrag)return;const t=tileAt(p.x,p.y);if(buildType){if(buildType.startsWith('move:')){const obj=state.placed.find(o=>o.id===buildType.slice(5));if(!obj)return;if(!inLand(t.x,t.y)||occupied(t.x,t.y)){showToast('Choose a clear tile inside your land.');return;}obj.x=t.x;obj.y=t.y;setBuild(null);$('placementBanner').textContent='Choose a clear tile to place equipment · tap Build again to cancel';$('placementBanner').classList.remove('show');save(false);showToast('Machine moved.');}else place(buildType,t.x,t.y);return;}const obj=occupied(t.x,t.y);if(obj){inspect(t.x,t.y);return;}if(!inLand(t.x,t.y)){showToast('Locked land · use Expand land to grow your plot.');return;}selectedId=null;closePanel();});
+canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();const p=canvasPoint(e),before=screenToWorld(p.x,p.y);camera.zoom=Math.max(.55,Math.min(1.55,camera.zoom*(e.deltaY<0?1.08:.92)));const after=screenToWorld(p.x,p.y);camera.x+=before.x-after.x;camera.y+=before.y-after.y;},{passive:false});
+document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{const type=b.dataset.build;if(buildType===type){setBuild(null);$('buildTray').classList.remove('open');}else{buildType=type;$('buildTray').classList.add('open');$('placementBanner').classList.add('show');$('placementBanner').textContent='Placing '+equipment[type].name+' · tap a clear tile · tap Build to cancel';document.querySelectorAll('[data-build]').forEach(x=>x.style.outline=x===b?'3px solid #fff2a1':'none');}}));
+$('buildBtn').onclick=()=>{if(buildType){setBuild(null);$('buildTray').classList.remove('open');}else{$('buildTray').classList.toggle('open');if(!$('buildTray').classList.contains('open'))$('placementBanner').classList.remove('show');else showToast('Choose equipment, then tap a clear tile to place it.');}};
+$('expandBtn').onclick=expandLand;$('upgradeBtn').onclick=upgrades;$('statsBtn').onclick=stats;$('saveBtn').onclick=()=>save(true);$('closePanel').onclick=closePanel;
+$('resetBtn').onclick=()=>openPanel('↻ Reset factory','<p>This permanently deletes the local save and starts a new factory. This cannot be undone.</p><button class="wide" id="confirmReset">Yes, reset my factory</button><button class="wide" id="cancelReset">Keep playing</button>');document.addEventListener('click',e=>{if(e.target.id==='confirmReset'){localStorage.removeItem(SAVE_KEY);state={version:1,quack:120,earned:120,spent:0,placed:[],unlockedRadius:10,level:1,mutations:0,discovered:[],lastSave:Date.now(),camera:{x:0,y:0,zoom:1},sound:true};camera={x:0,y:0,zoom:1};buildType=null;selectedId=null;closePanel();updateHud();showToast('Fresh factory started.');}if(e.target.id==='cancelReset')closePanel();});
+window.addEventListener('resize',resize);window.addEventListener('pagehide',()=>save(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lastTick=performance.now();}});
+load();camera={x:state.camera?.x||0,y:state.camera?.y||0,zoom:Math.max(.55,Math.min(1.55,state.camera?.zoom||1))};resize();updateHud();requestAnimationFrame(render);requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
