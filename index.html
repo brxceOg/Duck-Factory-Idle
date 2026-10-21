@@ -142,8 +142,9 @@ function drawMachine(o,sx,sy,z,now){
      const t=(cycle-.53)/.16;
      squash=.52+.48*t; duckY=.65-t*.035;
    }else if(cycle>=.69&&cycle<.94){
+     // One finished duck exits horizontally over the tray in the final quarter of each 2.6s cycle.
      const t=(cycle-.69)/.25;
-     duckX=.5+t*.27; duckY=.66+t*.115; squash=1-.12*t;
+     duckX=.5+t*.62; duckY=.66; squash=1-.04*t;
    }else if(cycle>=.94){
      duckAlpha=1-(cycle-.94)/.06;
    }
