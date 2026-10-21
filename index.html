@@ -108,6 +108,9 @@ function drawDuck(sx,sy,z,variant){ctx.save();ctx.translate(sx+TILE*z*.5,sy+TILE
 function drawMachine(o,sx,sy,z,now){
  // Tile-contained illustrated machines with distinct silhouettes, layered metal, highlights, and readable animation.
  ctx.save();ctx.translate(sx,sy);const s=TILE*z;
+ // Keep machine silhouettes visually balanced on the same tile footprint. Conveyors
+ // are especially broad, so inset them slightly instead of letting the belt dominate.
+ if(o.type==='conveyor'){ctx.translate(s*.5,s*.5);ctx.scale(.86,.86);ctx.translate(-s*.5,-s*.5);}
  const rounded=(x,y,w,h,r,fill,stroke='#27323a',lw=1.5*z)=>roundedRect(x,y,w,h,r,fill,stroke);
  const metal='#465660',metalLight='#7f9098',metalDark='#27333b',gold='#f8bd43',goldLight='#ffe28a',orange='#f07d32',cyan='#54dcf5';
  rounded(2*z,s*.78,s-4*z,s*.19,4*z,'#37452f','#29352a');
