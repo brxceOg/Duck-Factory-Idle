@@ -122,7 +122,9 @@ function drawMachine(o,sx,sy,z,now){
    rounded(s*.18,s*.34,s*.64,s*.1,3*z,goldLight,'#9c5727',1*z);
    // Press window and a complete hydraulic stamping cycle.
    // The ram descends, compresses the duck, retracts, then the finished duck slides out.
-   const cycle=(now%2600)/2600;
+   // Share the exact production clock with conveyor spawning so the visual duck exits
+   // immediately before updateConveyorDucks creates its matching conveyor duck.
+   const cycle=(duckSpawnClock%2.8)/2.8;
    let ram=0;
    if(cycle>=.19&&cycle<.38)ram=(cycle-.19)/.19;
    else if(cycle>=.38&&cycle<.53)ram=1;
@@ -141,12 +143,12 @@ function drawMachine(o,sx,sy,z,now){
    }else if(cycle>=.53&&cycle<.69){
      const t=(cycle-.53)/.16;
      squash=.52+.48*t; duckY=.65-t*.035;
-   }else if(cycle>=.69&&cycle<.94){
-     // One finished duck exits horizontally over the tray in the final quarter of each 2.6s cycle.
-     const t=(cycle-.69)/.25;
+   }else if(cycle>=.75&&cycle<.98){
+     // Slide out during the final 0.64 seconds of the same 2.8s cycle used by conveyor spawning.
+     const t=(cycle-.75)/.23;
      duckX=.5+t*.62; duckY=.66; squash=1-.04*t;
-   }else if(cycle>=.94){
-     duckAlpha=1-(cycle-.94)/.06;
+   }else if(cycle>=.98){
+     duckAlpha=1-(cycle-.98)/.02;
    }
    ctx.save();
    ctx.globalAlpha=duckAlpha;
