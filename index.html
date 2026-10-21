@@ -177,29 +177,33 @@ function drawMachine(o,sx,sy,z,now){
    // machine's stamp animation is visible even at small zoom
    const stamp=(Math.sin(now/230)+1)/2;ctx.fillStyle='rgba(255,237,166,'+(.2+stamp*.45)+')';ctx.fillRect(s*.32,s*.45,s*.36,s*.025);
  }else if(o.type==='conveyor'){
-   // One continuous belt surface: every occupied neighbor gets a same-width
-   // extension, whether it is another belt or a machine. The extensions use
-   // the deck material (not dark connector blocks), so turns and machine joins
-   // read as a single morphing lane.
+   // A conveyor is a belt segment, never a machine tile with connector blocks.
+   // Only neighboring conveyors create morphing arms; machines are approached
+   // by the belt's own edge-to-edge lane, without extra tabs or connector caps.
    const dir=((o.dir||0)%4+4)%4;
    const neighbors=DIRS.map((d,worldDir)=>({
      worldDir,
-     neighbor:state.placed.find(p=>p.x===o.x+d.x&&p.y===o.y+d.y)
+     neighbor:conveyorAt(o.x+d.x,o.y+d.y)
    })).filter(n=>n.neighbor);
    const half=s*.235, armW=half*2;
    const connected=new Set(neighbors.map(n=>n.worldDir));
-   ctx.fillStyle='#202b31';
-   ctx.fillRect(s*.5-half,s*.5-half,armW,armW);
+   // Shared center and continuous arms use exactly the same belt surface.
+   // No outlines or block-shaped sockets at the tile edges.
    ctx.fillStyle='#333f45';
-   // Center deck and edge-to-edge arms are identical material and width.
-   ctx.fillRect(-z,s*.5-half,s+2*z,armW);
-   ctx.fillRect(s*.5-half,-z,armW,s+2*z);
-   // Main rails follow the chosen belt orientation. Keep them narrow and inset.
+   ctx.fillRect(s*.5-half,s*.5-half,armW,armW);
+   if(connected.has(0))ctx.fillRect(s*.5-half,s*.5-half,s*.5+z,armW);
+   if(connected.has(1))ctx.fillRect(s*.5-half,s*.5-half,armW,s*.5+z);
+   if(connected.has(2))ctx.fillRect(-z,s*.5-half,s*.5+z,armW);
+   if(connected.has(3))ctx.fillRect(s*.5-half,-z,armW,s*.5+z);
+   // The moving belt lane reaches both tile edges in its own orientation,
+   // letting aligned segments read as one long conveyor instead of separate tiles.
    ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate(dir*Math.PI/2);
+   ctx.fillStyle='#333f45';ctx.fillRect(-s*.5,-half,s,armW);
+   // Fine rails are part of the belt lane and never form connector caps.
    ctx.fillStyle='#27333b';
-   ctx.fillRect(-s*.5,-half-s*.035,s, s*.035);
+   ctx.fillRect(-s*.5,-half-s*.035,s,s*.035);
    ctx.fillRect(-s*.5,half,s,s*.035);
-   // Animated cleats and direction marks stay within the main lane.
+   // Animated cleats move along the lane and stay clipped to its width.
    ctx.beginPath();ctx.rect(-s*.5,-half,s,armW);ctx.clip();
    const travel=(now/260)%1;
    for(let i=0;i<9;i++){
@@ -213,21 +217,22 @@ function drawMachine(o,sx,sy,z,now){
      ctx.beginPath();ctx.moveTo(ax-s*.03,-s*.05);ctx.lineTo(ax+s*.03,0);ctx.lineTo(ax-s*.03,s*.05);ctx.stroke();
    }
    ctx.restore();
-   // Connector rails are thin edge lines, not end caps. They continue right
-   // to the tile boundary and use the same belt width for turns and machine joins.
-   ctx.fillStyle='#27333b';
-   if(connected.has(0)){ctx.fillRect(s*.5-half,s*.5-half,s*.5+z,1.1*z);ctx.fillRect(s*.5-half,s*.5+half-1.1*z,s*.5+z,1.1*z);}
-   if(connected.has(2)){ctx.fillRect(-z,s*.5-half,s*.5+z,1.1*z);ctx.fillRect(-z,s*.5+half-1.1*z,s*.5+z,1.1*z);}
-   if(connected.has(1)){ctx.fillRect(s*.5-half,s*.5-half,1.1*z,s*.5+z);ctx.fillRect(s*.5+half-1.1*z,s*.5-half,1.1*z,s*.5+z);}
-   if(connected.has(3)){ctx.fillRect(s*.5-half,-z,1.1*z,s*.5+z);ctx.fillRect(s*.5+half-1.1*z,-z,1.1*z,s*.5+z);}
-   // A few subtle cleats continue down connector arms, matching the main belt
-   // without creating oversized blocks at corners, rotations, or machine edges.
-   ctx.save();ctx.beginPath();ctx.rect(-z,s*.5-half,s+2*z,armW);ctx.clip();
-   ctx.fillStyle='#657278';
+   // Matching cleats continue across the morphing arms. These are belt details,
+   // not separate blocks, and are drawn only where another conveyor is adjacent.
+   ctx.save();ctx.beginPath();
+   for(const n of neighbors){
+     if(n.worldDir===0)ctx.rect(s*.5-half,s*.5-half,s*.5+z,armW);
+     if(n.worldDir===1)ctx.rect(s*.5-half,s*.5-half,armW,s*.5+z);
+     if(n.worldDir===2)ctx.rect(-z,s*.5-half,s*.5+z,armW);
+     if(n.worldDir===3)ctx.rect(s*.5-half,-z,armW,s*.5+z);
+   }
+   ctx.clip();
    const armTravel=(now/320)%1;
+   ctx.fillStyle='#657278';
    for(let i=0;i<7;i++){
-     const xx=-s*.5+((i/7+armTravel)%1)*s;
-     ctx.fillRect(xx,s*.5-half,Math.max(1*z,1.5*z),armW);
+     const p=-s*.5+((i/7+armTravel)%1)*s;
+     ctx.fillRect(p,s*.5-half,Math.max(1*z,1.5*z),armW);
+     ctx.fillRect(s*.5-half,p,armW,Math.max(1*z,1.5*z));
    }
    ctx.restore();
  }else if(o.type==='resonator'){
