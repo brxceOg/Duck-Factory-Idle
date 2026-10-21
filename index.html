@@ -175,7 +175,35 @@ function drawMachine(o,sx,sy,z,now){
    const stamp=(Math.sin(now/230)+1)/2;ctx.fillStyle='rgba(255,237,166,'+(.2+stamp*.45)+')';ctx.fillRect(s*.32,s*.45,s*.36,s*.025);
  }else if(o.type==='conveyor'){
    // Real moving belt: a continuous dark rubber surface with traveling cross-cleats and arrow markings.
+   // Determine adjacent conveyor links and machine ports. Extend the belt surface
+   // to tile edges wherever equipment touches so neighboring pieces read as one line.
+   const neighbors=[{dx:0,dy:-1,side:0},{dx:1,dy:0,side:1},{dx:0,dy:1,side:2},{dx:-1,dy:0,side:3}];
+   const linked=neighbors.map(n=>{const a=state.placed.find(p=>p.x===o.x+n.dx&&p.y===o.y+n.dy);return {...n,obj:a,yes:!!a};});
+   const cx=s*.5,cy=s*.5,half=s*.26;
+   // Draw continuous dark belt tongues to adjacent equipment edges, clipped to this tile.
+   ctx.fillStyle=metalDark;
+   for(const n of linked){if(!n.yes)continue;
+     const isMachine=n.obj.type!=='conveyor';
+     if(n.side===0)ctx.fillRect(cx-half,0,half*2,cy);
+     if(n.side===1)ctx.fillRect(cx,cy-half,cy,half*2);
+     if(n.side===2)ctx.fillRect(cx-half,cy,half*2,cy);
+     if(n.side===3)ctx.fillRect(0,cy-half,cy,half*2);
+     ctx.fillStyle=isMachine?'#38464c':metalDark;
+     if(n.side===0)ctx.fillRect(cx-half,0,half*2,cy);
+     if(n.side===1)ctx.fillRect(cx,cy-half,cy,half*2);
+     if(n.side===2)ctx.fillRect(cx-half,cy,half*2,cy);
+     if(n.side===3)ctx.fillRect(0,cy-half,cy,half*2);
+     ctx.fillStyle=metalDark;
+   }
    rounded(2*z,s*.12,s-4*z,s*.76,5*z,metalDark,'#172127',2*z);
+   // Repaint connection tongues over the outer housing for a seamless edge-to-edge belt.
+   ctx.fillStyle=metalDark;
+   for(const n of linked){if(!n.yes)continue;
+     if(n.side===0)ctx.fillRect(cx-half,0,half*2,cy);
+     if(n.side===1)ctx.fillRect(cx,cy-half,cy,half*2);
+     if(n.side===2)ctx.fillRect(cx-half,cy,half*2,cy);
+     if(n.side===3)ctx.fillRect(0,cy-half,cy,half*2);
+   }
    rounded(5*z,s*.16,s-10*z,s*.68,3*z,'#202b31','#8b9698',1*z);
    ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate((o.dir||0)*Math.PI/2);
    const bx=-s*.27, bw=s*.54, beltY=-s*.26, beltH=s*.52;
