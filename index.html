@@ -112,9 +112,9 @@ function render(now){
  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const p=worldToScreen(x*TILE/TILE,y*TILE/TILE),sx=p.x,sy=p.y;drawGround(sx,sy,x,y);if(!inLand(x,y)){ctx.fillStyle='rgba(22,30,24,.57)';ctx.fillRect(sx,sy,TILE*z,TILE*z);if((x+y)%4===0&&z>.6){ctx.fillStyle='#b2b69a';ctx.font='10px system-ui';ctx.fillText('LOCKED',sx+5*z,sy+TILE*z/2);}}else if(Math.abs(x)>state.unlockedRadius-1||Math.abs(y)>state.unlockedRadius-1){ctx.strokeStyle='rgba(255,224,133,.35)';ctx.lineWidth=1;ctx.strokeRect(sx+1,sy+1,TILE*z-2,TILE*z-2);}
   if(inLand(x,y)&&!occupied(x,y)&&z>.7){const seed=Math.abs((x*73+y*119)%101);if(seed<4&&Math.abs(x)>2&&Math.abs(y)>2)drawTree(sx,sy,z,seed%2);}}
  for(const o of state.placed){const p=worldToScreen(o.x,o.y);drawMachine(o,p.x,p.y,z,now);if(o.type==='press'&&z>.8)drawDuck(p.x+TILE*z*.48,p.y+TILE*z*.15,z*.5,false);}
- // Tiny rubber ducks ride along conveyor belts in a looping production animation.
- const belts=state.placed.filter(o=>o.type==='conveyor').sort((a,b)=>a.y-b.y||a.x-b.x);
- if(belts.length&&z>.48){const elapsed=now/1000;const ducks=Math.min(5,Math.max(1,Math.ceil(belts.length/3)));for(let d=0;d<ducks;d++){const progress=((elapsed*.42+d/ducks)%1)*belts.length;const idx=Math.floor(progress),fraction=progress-idx;const belt=belts[idx],next=belts[(idx+1)%belts.length];const bx=belt.x+(next.x-belt.x)*fraction,by=belt.y+(next.y-belt.y)*fraction;const p=worldToScreen(bx,by);drawDuck(p.x,p.y,z*.43,(idx+d)%3===0);}}
+ // Tiny rubber ducks visibly travel along each conveyor tile without jumping across gaps.
+ const belts=state.placed.filter(o=>o.type==='conveyor');
+ if(belts.length&&z>.48){const elapsed=now/1000;for(let i=0;i<belts.length;i++){const belt=belts[i];const phase=(elapsed*.42+i*.37)%1;const p=worldToScreen(belt.x+phase*.38-.19,belt.y);drawDuck(p.x,p.y,z*.34,i%3===0);}}
  if(buildType){const p=tileAt(pointer.x,pointer.y);const s=worldToScreen(p.x,p.y);ctx.fillStyle=inLand(p.x,p.y)&&!occupied(p.x,p.y)?'#8cff9b66':'#ff484866';ctx.fillRect(s.x+2,s.y+2,TILE*z-4,TILE*z-4);ctx.strokeStyle=inLand(p.x,p.y)&&!occupied(p.x,p.y)?'#d5ffd6':'#ffd1c4';ctx.lineWidth=2;ctx.strokeRect(s.x+2,s.y+2,TILE*z-4,TILE*z-4);}
  if(quackPulse>0){ctx.globalAlpha=Math.min(.2,quackPulse*.2);ctx.fillStyle='#ffce5a';ctx.fillRect(0,0,screen.w,screen.h);ctx.globalAlpha=1;}
  requestAnimationFrame(render);
