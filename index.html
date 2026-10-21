@@ -205,7 +205,7 @@ function drawMachine(o,sx,sy,z,now){
    ctx.fillRect(-s*.5,half,s,s*.035);
    // Animated cleats move along the lane and stay clipped to its width.
    ctx.beginPath();ctx.rect(-s*.5,-half,s,armW);ctx.clip();
-   const travel=(now/260)%1;
+   const travel=(now/850)%1;
    for(let i=0;i<9;i++){
      const xx=-s*.5+((i/9+travel)%1)*s;
      ctx.fillStyle=i%2?'#69767b':'#879398';
@@ -227,7 +227,7 @@ function drawMachine(o,sx,sy,z,now){
      if(n.worldDir===3)ctx.rect(s*.5-half,-z,armW,s*.5+z);
    }
    ctx.clip();
-   const armTravel=(now/320)%1;
+   const armTravel=(now/850)%1;
    ctx.fillStyle='#657278';
    for(let i=0;i<7;i++){
      const p=-s*.5+((i/7+armTravel)%1)*s;
