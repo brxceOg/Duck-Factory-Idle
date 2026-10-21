@@ -91,7 +91,7 @@ function key(x,y){return x+','+y;}
 function occupied(x,y){return state.placed.find(o=>o.x===x&&o.y===y);}
 function conveyorAt(x,y){return state.placed.find(o=>o.type==='conveyor'&&o.x===x&&o.y===y);}
 function inferConveyorDirection(x,y){for(let d=0;d<4;d++){const n=conveyorAt(x-DIRS[d].x,y-DIRS[d].y);if(n&&(n.dir||0)===d)return d;}for(let d=0;d<4;d++){const n=conveyorAt(x+DIRS[d].x,y+DIRS[d].y);if(n)return n.dir||0;}return 0;}
-function rotateConveyor(o){o.dir=((o.dir||0)+1)%4;showToast('Conveyor rotated '+DIRS[o.dir].name+'.');save(false);}
+function rotateConveyor(o){o.dir=((o.dir||0)+1)%4;save(false);}
 function inLand(x,y){return Math.abs(x)<=state.unlockedRadius&&Math.abs(y)<=state.unlockedRadius;}
 function rate(){return state.placed.reduce((n,o)=>n+equipment[o.type].rate*(o.level||1),0)*(1+(state.level-1)*.12);}
 function fmt(n){if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(2)+'M';if(n>=1e3)return (n/1e3).toFixed(1)+'K';return n.toFixed(n<10?1:0);}
