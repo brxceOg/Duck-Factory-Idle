@@ -264,3 +264,25 @@ Do not silently treat any of these open decisions as already finalized.
 ---
 
 **North star:** Build a funny, beautiful, mobile-friendly duck factory where every expansion makes the operation more impressive, every mutation has the potential to be wonderfully wrong, and Abby always has another strange business opportunity to chase.
+
+## 20. Non-negotiable implementation and delivery rules
+
+These rules apply to every coding session and commit. They are mandatory, not optional preferences.
+
+### Finish implemented code; do not leave placeholders
+- When implementing a feature, complete the code for the agreed scope rather than leaving placeholder sections, stub functions, TODO-only implementations, mock controls, or comments promising that core behavior will be added later.
+- Do not present a feature as complete if any part of its agreed functionality is still a placeholder.
+- Avoid fake interactions: every visible control introduced for a feature must perform its intended action or be clearly and deliberately disabled with an explanation.
+- If a requirement cannot be completed safely in the current change, explain the limitation before calling the feature done; do not disguise unfinished work as a finished implementation.
+- Temporary scaffolding is allowed only when explicitly identified as temporary and agreed upon. Replace it before the relevant feature is declared complete.
+- Before committing, review the changed files for TODOs, stubs, unimplemented branches, placeholder content, dead controls, and missing error handling related to the change.
+
+### Provide a playable test link after every commit
+- After **every commit that changes the game**, provide the user with a direct link to the playable build so they can test the current state.
+- Prefer the deployed GitHub Pages URL once GitHub Pages is configured and deployment has succeeded. Verify the URL and deployment status before claiming the link is live.
+- If GitHub Pages is not configured or the latest commit has not deployed successfully, do not invent or falsely label a playable URL. Clearly state that a live build is not yet available and provide the most useful verified alternative, such as the repository or commit link, plus the steps/blocker needed to make the build playable.
+- Do not imply that a commit itself proves the game works. When possible, verify the build and test the affected interactions before reporting it as ready.
+- In the post-commit response, include: a concise summary of what changed, the commit link, the playable link (or a clear note that it is not yet available and why), and any relevant test results or known limitations.
+- Keep the link easy to find; do not bury it in a long explanation.
+
+These delivery rules exist to keep every change testable and prevent unfinished code from silently accumulating.
