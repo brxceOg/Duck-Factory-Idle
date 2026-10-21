@@ -36,8 +36,8 @@ main{flex:1;min-height:0;position:relative;overflow:hidden}#world{display:block;
   <div class="wallet"><span class="waveIcon">)))</span><div><strong id="quack">120</strong><small>QUACK · <span id="rate">0</span>/sec</small></div><div id="soundMeter"><div id="soundFill"></div></div></div>
 </header>
 <main>
-  <canvas id="world" aria-label="Scrollable factory map. Drag to pan, tap a tile to build or inspect."></canvas>
-  <div id="tip">Drag to explore your land · Tap a tile to build or inspect. Your machines make Quack through sound waves.</div>
+  <canvas id="world" aria-label="Scrollable factory map. Drag with one finger to pan, pinch with two fingers to zoom, tap a tile to build or inspect."></canvas>
+  <div id="tip">Drag with one finger to explore · Pinch with two fingers to zoom · Tap a tile to build or inspect.</div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="placementBanner">Choose a clear tile to place equipment · tap Build again to cancel</div>
   <aside id="panel" aria-live="polite"><button class="close" id="closePanel" aria-label="Close panel">✕</button><div id="panelContent"></div></aside>
@@ -51,7 +51,7 @@ main{flex:1;min-height:0;position:relative;overflow:hidden}#world{display:block;
     <button data-build="storage">📦 Duck Storage <span>Cost 35 Quack · factory capacity</span></button>
   </div>
   <nav class="toolbar" aria-label="Factory controls">
-    <button id="zoomOutBtn" aria-label="Zoom out">－ Zoom</button><button id="zoomInBtn" aria-label="Zoom in">＋ Zoom</button><button id="buildBtn">🏗️ Build</button><button id="expandBtn">🌱 Expand land</button><button id="upgradeBtn">📈 Upgrade</button><button id="statsBtn">📊 Factory</button><button id="saveBtn">💾 Save</button><button id="resetBtn">↻ Reset</button>
+    <button id="buildBtn">🏗️ Build</button><button id="expandBtn">🌱 Expand land</button><button id="upgradeBtn">📈 Upgrade</button><button id="statsBtn">📊 Factory</button><button id="saveBtn">💾 Save</button><button id="resetBtn">↻ Reset</button>
   </nav>
 </div>
 </div>
@@ -72,6 +72,7 @@ let state={version:1,quack:120,earned:120,spent:0,placed:[],unlockedRadius:10,le
 let camera={x:0,y:0,zoom:1},screen={w:1,h:1,dpr:1},buildType=null,selectedId=null,drag=null,lastFrame=performance.now(),toastTimer=null,mutationClock=0,quackPulse=0;
 const DIRS=[{x:1,y:0,name:'east'},{x:0,y:1,name:'south'},{x:-1,y:0,name:'west'},{x:0,y:-1,name:'north'}];
 let movingDucks=[],duckSpawnClock=0,duckSerial=0;
+const activePointers=new Map();let pinch=null;
 function load(){
  try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;const parsed=JSON.parse(raw);if(parsed&&parsed.version===1&&Number.isFinite(parsed.quack)&&Array.isArray(parsed.placed)){state={...state,...parsed};state.placed=state.placed.filter(o=>o&&equipment[o.type]&&Number.isInteger(o.x)&&Number.isInteger(o.y));state.discovered=Array.isArray(state.discovered)?state.discovered:[];}}
  catch(e){showToast('Save could not be loaded; starting a fresh factory.');}
@@ -80,7 +81,12 @@ function save(show=true){try{state.camera={...camera};state.lastSave=Date.now();
 function resize(){const r=canvas.getBoundingClientRect();screen.w=r.width;screen.h=r.height;screen.dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(r.width*screen.dpr);canvas.height=Math.round(r.height*screen.dpr);ctx.setTransform(screen.dpr,0,0,screen.dpr,0,0);}
 function worldToScreen(x,y){return {x:(x*TILE-camera.x)*camera.zoom+screen.w/2,y:(y*TILE-camera.y)*camera.zoom+screen.h/2};}
 function screenToWorld(x,y){return {x:(x-screen.w/2)/camera.zoom+camera.x,y:(y-screen.h/2)/camera.zoom+camera.y};}
-function tileAt(sx,sy){const w=screenToWorld(sx,sy);return {x:Math.floor(w.x/TILE),y:Math.floor(w.y/TILE)};}
+function tileAt(sx,sy){
+ // Use the canvas CSS-pixel coordinate system for both the preview and committed placement.
+ const wx=(sx-screen.w/2)/camera.zoom+camera.x;
+ const wy=(sy-screen.h/2)/camera.zoom+camera.y;
+ return {x:Math.floor(wx/TILE),y:Math.floor(wy/TILE)};
+}
 function key(x,y){return x+','+y;}
 function occupied(x,y){return state.placed.find(o=>o.x===x&&o.y===y);}
 function conveyorAt(x,y){return state.placed.find(o=>o.type==='conveyor'&&o.x===x&&o.y===y);}
@@ -142,15 +148,60 @@ function maybeMutation(dt){mutationClock+=dt;const vats=state.placed.filter(o=>o
 function openCollection(){const list=state.discovered.length?state.discovered.map((n,i)=>'<div class="stat">🧬 <b>'+n+'</b><br>Discovery #'+(i+1)+'</div>').join(''):'<p>No mutations discovered yet. Place a Mutation Vat and let the lab work its questionable magic.</p>';openPanel('🧬 Mutation discoveries',list+'<p>Each vat occasionally discovers a strange duck and awards a Quack bonus. More vats shorten the expected wait.</p>');}
 let lastTick=performance.now();function tick(now){const dt=Math.min((now-lastTick)/1000,1);lastTick=now;if(dt>0){const gain=rate()*dt;state.quack+=gain;state.earned+=gain;quackPulse=Math.max(0,quackPulse-dt);updateConveyorDucks(dt);maybeMutation(dt);updateHud();}requestAnimationFrame(tick);}
 function canvasPoint(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
-canvas.addEventListener('pointerdown',e=>{const p=canvasPoint(e);pointer=p;drag={id:e.pointerId,startX:p.x,startY:p.y,lastX:p.x,lastY:p.y,moved:false,camX:camera.x,camY:camera.y};canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{const p=canvasPoint(e);pointer=p;if(!drag)return;const dx=p.x-drag.startX,dy=p.y-drag.startY;if(Math.abs(dx)+Math.abs(dy)>6)drag.moved=true;if(drag.moved){camera.x=drag.camX-dx/camera.zoom;camera.y=drag.camY-dy/camera.zoom;}});
-canvas.addEventListener('pointerup',e=>{if(!drag)return;const p=canvasPoint(e),wasDrag=drag.moved;drag=null;if(wasDrag)return;const t=tileAt(p.x,p.y);if(buildType){if(buildType.startsWith('move:')){const obj=state.placed.find(o=>o.id===buildType.slice(5));if(!obj)return;if(!inLand(t.x,t.y)||occupied(t.x,t.y)){showToast('Choose a clear tile inside your land.');return;}obj.x=t.x;obj.y=t.y;if(obj.type==='conveyor')obj.dir=inferConveyorDirection(t.x,t.y);setBuild(null);$('placementBanner').textContent='Choose a clear tile to place equipment · tap Build again to cancel';$('placementBanner').classList.remove('show');save(false);showToast('Machine moved.');}else place(buildType,t.x,t.y);return;}const obj=occupied(t.x,t.y);if(obj){if(obj.type==='conveyor'){rotateConveyor(obj);return;}inspect(t.x,t.y);return;}if(!inLand(t.x,t.y)){showToast('Locked land · use Expand land to grow your plot.');return;}selectedId=null;closePanel();});
-canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('pointerdown',e=>{
+ const p=canvasPoint(e);pointer=p;activePointers.set(e.pointerId,p);
+ try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+ if(activePointers.size===2){
+  const pts=[...activePointers.values()],mid={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+  const world=screenToWorld(mid.x,mid.y),dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+  pinch={distance:Math.max(1,dist),zoom:camera.zoom,worldX:world.x,worldY:world.y};drag=null;return;
+ }
+ drag={id:e.pointerId,startX:p.x,startY:p.y,moved:false,camX:camera.x,camY:camera.y};
+});
+canvas.addEventListener('pointermove',e=>{
+ const p=canvasPoint(e);pointer=p;
+ if(activePointers.has(e.pointerId))activePointers.set(e.pointerId,p);
+ if(pinch&&activePointers.size>=2){
+  const pts=[...activePointers.values()].slice(0,2),mid={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+  const dist=Math.max(1,Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y));
+  camera.zoom=Math.max(.45,Math.min(2.4,pinch.zoom*dist/pinch.distance));
+  camera.x=pinch.worldX-(mid.x-screen.w/2)/camera.zoom;
+  camera.y=pinch.worldY-(mid.y-screen.h/2)/camera.zoom;
+  return;
+ }
+ if(!drag||drag.id!==e.pointerId)return;
+ const dx=p.x-drag.startX,dy=p.y-drag.startY;
+ if(Math.abs(dx)+Math.abs(dy)>6)drag.moved=true;
+ if(drag.moved){camera.x=drag.camX-dx/camera.zoom;camera.y=drag.camY-dy/camera.zoom;}
+});
+function finishPointer(e,cancelled=false){
+ const p=canvasPoint(e);
+ activePointers.delete(e.pointerId);
+ if(pinch){pinch=null;drag=null;return;}
+ if(!drag||drag.id!==e.pointerId){drag=null;return;}
+ const wasDrag=drag.moved;drag=null;
+ if(cancelled||wasDrag)return;
+ const t=tileAt(p.x,p.y);
+ if(buildType){
+  if(buildType.startsWith('move:')){
+   const obj=state.placed.find(o=>o.id===buildType.slice(5));if(!obj)return;
+   if(!inLand(t.x,t.y)||occupied(t.x,t.y)){showToast('Choose a clear tile inside your land.');return;}
+   obj.x=t.x;obj.y=t.y;if(obj.type==='conveyor')obj.dir=inferConveyorDirection(t.x,t.y);
+   setBuild(null);$('placementBanner').textContent='Choose a clear tile to place equipment · tap Build again to cancel';$('placementBanner').classList.remove('show');save(false);showToast('Machine moved.');
+  }else place(buildType,t.x,t.y);
+  return;
+ }
+ const obj=occupied(t.x,t.y);
+ if(obj){if(obj.type==='conveyor'){rotateConveyor(obj);return;}inspect(t.x,t.y);return;}
+ if(!inLand(t.x,t.y)){showToast('Locked land · use Expand land to grow your plot.');return;}
+ selectedId=null;closePanel();
+}
+canvas.addEventListener('pointerup',e=>finishPointer(e));
+canvas.addEventListener('pointercancel',e=>finishPointer(e,true));
 canvas.addEventListener('wheel',e=>{e.preventDefault();const p=canvasPoint(e),before=screenToWorld(p.x,p.y);camera.zoom=Math.max(.45,Math.min(2.0,camera.zoom*(e.deltaY<0?1.08:.92)));const after=screenToWorld(p.x,p.y);camera.x+=before.x-after.x;camera.y+=before.y-after.y;},{passive:false});
 document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{const type=b.dataset.build;if(buildType===type){setBuild(null);$('buildTray').classList.remove('open');}else{buildType=type;$('buildTray').classList.add('open');$('placementBanner').classList.add('show');$('placementBanner').textContent='Placing '+equipment[type].name+' · tap a clear tile · tap Build to cancel';document.querySelectorAll('[data-build]').forEach(x=>x.style.outline=x===b?'3px solid #fff2a1':'none');}}));
 $('buildBtn').onclick=()=>{if(buildType){setBuild(null);$('buildTray').classList.remove('open');}else{$('buildTray').classList.toggle('open');if(!$('buildTray').classList.contains('open'))$('placementBanner').classList.remove('show');else showToast('Choose equipment, then tap a clear tile to place it.');}};
-function zoomBy(factor){const before=screenToWorld(screen.w/2,screen.h/2);camera.zoom=Math.max(.45,Math.min(2.0,camera.zoom*factor));const after=screenToWorld(screen.w/2,screen.h/2);camera.x+=before.x-after.x;camera.y+=before.y-after.y;}
-$('zoomInBtn').onclick=()=>zoomBy(1.18);$('zoomOutBtn').onclick=()=>zoomBy(1/1.18);$('expandBtn').onclick=expandLand;$('upgradeBtn').onclick=upgrades;$('statsBtn').onclick=stats;$('saveBtn').onclick=()=>save(true);$('closePanel').onclick=closePanel;
+$('expandBtn').onclick=expandLand;$('upgradeBtn').onclick=upgrades;$('statsBtn').onclick=stats;$('saveBtn').onclick=()=>save(true);$('closePanel').onclick=closePanel;
 $('resetBtn').onclick=()=>openPanel('↻ Reset factory','<p>This permanently deletes the local save and starts a new factory. This cannot be undone.</p><button class="wide" id="confirmReset">Yes, reset my factory</button><button class="wide" id="cancelReset">Keep playing</button>');document.addEventListener('click',e=>{if(e.target.id==='confirmReset'){localStorage.removeItem(SAVE_KEY);state={version:1,quack:120,earned:120,spent:0,placed:[],unlockedRadius:10,level:1,mutations:0,discovered:[],lastSave:Date.now(),camera:{x:0,y:0,zoom:1},sound:true};camera={x:0,y:0,zoom:1};buildType=null;selectedId=null;closePanel();updateHud();showToast('Fresh factory started.');}if(e.target.id==='cancelReset')closePanel();});
 window.addEventListener('resize',resize);window.addEventListener('pagehide',()=>save(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lastTick=performance.now();}});
 load();camera={x:state.camera?.x||0,y:state.camera?.y||0,zoom:Math.max(.45,Math.min(2.0,state.camera?.zoom||1))};for(const o of state.placed){if(o.type==='conveyor'&&!Number.isInteger(o.dir))o.dir=0;}resize();updateHud();requestAnimationFrame(render);requestAnimationFrame(tick);
