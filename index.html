@@ -108,14 +108,17 @@ function drawDuck(sx,sy,z,variant){ctx.save();ctx.translate(sx+TILE*z*.5,sy+TILE
 function drawMachine(o,sx,sy,z,now){
  // Tile-contained illustrated machines with distinct silhouettes, layered metal, highlights, and readable animation.
  ctx.save();ctx.translate(sx,sy);const s=TILE*z;
- // Keep machine silhouettes visually balanced on the same tile footprint. Conveyors
- // are especially broad, so inset them slightly instead of letting the belt dominate.
- // Conveyors use the full tile footprint so connected belt arms meet neighboring tiles without gaps.
  const rounded=(x,y,w,h,r,fill,stroke='#27323a',lw=1.5*z)=>roundedRect(x,y,w,h,r,fill,stroke);
  const metal='#465660',metalLight='#7f9098',metalDark='#27333b',gold='#f8bd43',goldLight='#ffe28a',orange='#f07d32',cyan='#54dcf5';
- rounded(2*z,s*.78,s-4*z,s*.19,4*z,'#37452f','#29352a');
- rounded(2*z,2*z,s-4*z,s-4*z,'#313e45','#1d282e',2*z);
- rounded(4*z,4*z,s-8*z,s-8*z,equipment[o.type].color,'#442a20',2*z);
+ // Conveyors are deliberately not drawn as individual square machines. Their
+ // neighboring belt segments overlap edge-to-edge, hiding tile seams entirely.
+ if(o.type==='conveyor'){
+   rounded(5*z,s*.79,s-10*z,s*.12,3*z,'#37452f','#29352a',1*z);
+ }else{
+   rounded(2*z,s*.78,s-4*z,s*.19,4*z,'#37452f','#29352a');
+   rounded(2*z,2*z,s-4*z,s-4*z,'#313e45','#1d282e',2*z);
+   rounded(4*z,4*z,s-8*z,s-8*z,equipment[o.type].color,'#442a20',2*z);
+ }
  if(o.type==='press'){
    // Heavy duck press: hydraulic cylinder, reinforced yellow body, front window and animated stamping head.
    rounded(s*.17,s*.09,s*.66,s*.22,5*z,metal,'#202a30',2*z);
@@ -174,58 +177,64 @@ function drawMachine(o,sx,sy,z,now){
    // machine's stamp animation is visible even at small zoom
    const stamp=(Math.sin(now/230)+1)/2;ctx.fillStyle='rgba(255,237,166,'+(.2+stamp*.45)+')';ctx.fillRect(s*.32,s*.45,s*.36,s*.025);
  }else if(o.type==='conveyor'){
-   // Build a tile-aware belt shape. Each occupied cardinal neighbor creates a
-   // matching belt arm, so straight runs, corners and junctions share one surface.
-   // The arms are transformed into the conveyor's local orientation, while the
-   // moving cleats/arrows keep following its selected flow direction.
+   // Morphing belt geometry: a shared-width center strip plus one narrow arm
+   // for every adjacent tile. Overlapping surfaces make the run read as one belt,
+   // not a set of chunky connector blocks.
    const dir=((o.dir||0)%4+4)%4;
-   const links=DIRS.map((d,worldDir)=>{
-     const neighbor=state.placed.find(p=>p.x===o.x+d.x&&p.y===o.y+d.y);
-     return {worldDir,neighbor,connected:!!neighbor};
-   }).filter(n=>n.connected);
-   const localLinks=links.map(n=>({...n,localDir:(n.worldDir-dir+4)%4}));
-   const beltHalf=s*.235, beltY=-beltHalf, beltH=beltHalf*2;
-   // Arms reach right to the tile boundary; a narrower dark shoulder makes
-   // the connection look like a built-in conveyor joint rather than an overlay.
-   ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate(dir*Math.PI/2);
+   const neighbors=DIRS.map((d,worldDir)=>({
+     worldDir,
+     neighbor:state.placed.find(p=>p.x===o.x+d.x&&p.y===o.y+d.y)
+   })).filter(n=>n.neighbor);
+   const half=s*.235;
+   const armW=half*2;
+   const connected=new Set(neighbors.map(n=>n.worldDir));
+   // Base underlay and belt deck: the arms meet the center with no outline seams.
    ctx.fillStyle='#202b31';
-   for(const n of localLinks){
-     if(n.localDir===0)ctx.fillRect(0,-s*.27,s*.5,s*.54);
-     if(n.localDir===1)ctx.fillRect(-s*.27,0,s*.54,s*.5);
-     if(n.localDir===2)ctx.fillRect(-s*.5,-s*.27,s*.5,s*.54);
-     if(n.localDir===3)ctx.fillRect(-s*.27,-s*.5,s*.54,s*.5);
+   ctx.fillRect(s*.5-half,s*.5-half,armW,armW);
+   for(const n of neighbors){
+     if(n.worldDir===0)ctx.fillRect(s*.5-half,s*.5-half,s*.5+z,armW);
+     if(n.worldDir===1)ctx.fillRect(s*.5-half,s*.5-half,armW,s*.5+z);
+     if(n.worldDir===2)ctx.fillRect(0,s*.5-half,s*.5+z,armW);
+     if(n.worldDir===3)ctx.fillRect(s*.5-half,0,armW,s*.5+z);
    }
-   ctx.fillStyle='#202b31';ctx.fillRect(-s*.29,-s*.29,s*.58,s*.58);
-   ctx.fillStyle='#333f45';ctx.fillRect(-s*.5,beltY,s,beltH);
-   // Side rails run along the main belt, but stop at connected ends so rails
-   // don't form awkward crossbars between adjacent machines.
-   ctx.fillStyle=metalDark;
-   ctx.fillRect(-s*.5,beltY-s*.045,s,s*.045);
-   ctx.fillRect(-s*.5,beltY+beltH,s,s*.045);
-   ctx.fillStyle=gold;
-   const hasWest=localLinks.some(n=>n.localDir===2),hasEast=localLinks.some(n=>n.localDir===0);
-   if(!hasWest)ctx.fillRect(-s*.5,beltY-s*.045,s*.045,s*.09);
-   if(!hasEast)ctx.fillRect(s*.455,beltY-s*.045,s*.045,s*.09);
-   // Moving cleats and arrows are drawn on the same continuous surface.
+   // The main deck runs edge-to-edge in the conveyor's chosen flow orientation.
+   ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate(dir*Math.PI/2);
+   ctx.fillStyle='#333f45';ctx.fillRect(-s*.5,-half,s,armW);
+   // Main rails stay slim; connector arms get matching rails only where needed.
+   ctx.fillStyle='#27333b';
+   ctx.fillRect(-s*.5,-half-s*.035,s,s*.035);
+   ctx.fillRect(-s*.5,half,s,s*.035);
+   ctx.restore();
+   // Each connection arm gets a quiet, narrow edge rail. No oversized caps or boxes.
+   ctx.fillStyle='#27333b';
+   if(connected.has(0)){ctx.fillRect(s*.5-half,s*.5-half,s*.5,1.2*z);ctx.fillRect(s*.5-half,s*.5+half-1.2*z,s*.5,1.2*z);}
+   if(connected.has(2)){ctx.fillRect(0,s*.5-half,s*.5,1.2*z);ctx.fillRect(0,s*.5+half-1.2*z,s*.5,1.2*z);}
+   if(connected.has(1)){ctx.fillRect(s*.5-half,s*.5-half,1.2*z,s*.5);ctx.fillRect(s*.5+half-1.2*z,s*.5-half,1.2*z,s*.5);}
+   if(connected.has(3)){ctx.fillRect(s*.5-half,0,1.2*z,s*.5);ctx.fillRect(s*.5+half-1.2*z,0,1.2*z,s*.5);}
+   // Moving cleats and arrows are clipped to the main deck, so motion stays tidy.
+   ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate(dir*Math.PI/2);
+   ctx.beginPath();ctx.rect(-s*.5,-half,s,armW);ctx.clip();
    const travel=(now/260)%1;
-   for(let i=0;i<8;i++){
-     const xx=-s*.5+((i/8+travel)%1)*s;
+   for(let i=0;i<9;i++){
+     const xx=-s*.5+((i/9+travel)%1)*s;
      ctx.fillStyle=i%2?'#69767b':'#879398';
-     ctx.fillRect(xx,beltY,Math.max(1.5*z,2*z),beltH);
+     ctx.fillRect(xx,-half,Math.max(1.2*z,1.8*z),armW);
    }
-   ctx.strokeStyle=gold;ctx.lineWidth=Math.max(1.6,2.4*z);ctx.lineCap='round';ctx.lineJoin='round';
+   ctx.strokeStyle=gold;ctx.lineWidth=Math.max(1.4,2*z);ctx.lineCap='round';ctx.lineJoin='round';
    for(let i=0;i<2;i++){
-     const ax=-s*.3+((i/2+travel*.7)%1)*s*.6;
-     ctx.beginPath();ctx.moveTo(ax-s*.035,-s*.055);ctx.lineTo(ax+s*.035,0);ctx.lineTo(ax-s*.035,s*.055);ctx.stroke();
+     const ax=-s*.29+((i/2+travel*.7)%1)*s*.58;
+     ctx.beginPath();ctx.moveTo(ax-s*.03,-s*.05);ctx.lineTo(ax+s*.03,0);ctx.lineTo(ax-s*.03,s*.05);ctx.stroke();
    }
    ctx.restore();
-   // Low-profile rollers on the sides remain visible without blocking the joints.
+   // Small rollers sit just inside the edge of the main belt, not as chunky side caps.
+   ctx.save();ctx.translate(s*.5,s*.5);ctx.rotate(dir*Math.PI/2);
    for(let i=0;i<4;i++){
-     const rx=s*(.16+i*.23);
+     const rx=-s*.38+i*s*.25;
      ctx.fillStyle=metalLight;
-     ctx.beginPath();ctx.arc(rx,s*.2,2*z,0,Math.PI*2);ctx.fill();
-     ctx.beginPath();ctx.arc(rx,s*.8,2*z,0,Math.PI*2);ctx.fill();
+     ctx.beginPath();ctx.arc(rx,-half-s*.015,1.4*z,0,Math.PI*2);ctx.fill();
+     ctx.beginPath();ctx.arc(rx,half+s*.015,1.4*z,0,Math.PI*2);ctx.fill();
    }
+   ctx.restore();
  }else if(o.type==='resonator'){
    rounded(s*.19,s*.68,s*.62,s*.15,4*z,metalDark,'#1e282e',2*z);
    rounded(s*.32,s*.19,s*.36,s*.5,6*z,metal,'#202a30',2*z);
